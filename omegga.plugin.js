@@ -128,7 +128,7 @@ module.exports = class Img2Brick {
   async runHeightmap(filename, destpath, {tile=false,micro=false,id,name}={}) {
     try {
       const command = HEIGHTMAP_BIN +
-        ` -o ${destpath} --owner_id "${id}" --owner "${name}" --img ${filename}${
+        ` -o ${destpath} --cull --owner_id "${id}" --owner "${name}" --img ${filename}${
           tile?' --tile':micro?' --micro':''
         }`;
       console.info(command);
