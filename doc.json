@@ -1,0 +1,54 @@
+{
+  "name": "img2brick",
+  "description": "Render images in game",
+  "author": "cake",
+  "config": {
+    "host-only": {
+      "description": "Whether img2brick is host only",
+      "type": "boolean",
+      "default": true
+    },
+    "authorized": {
+      "description": "Comma separated list of authorized usernames",
+      "type": "string",
+      "default": ""
+    },
+    "cooldown": {
+      "description": "Cooldown for time between loads (seconds)",
+      "type": "number",
+      "default": 30
+    },
+    "max-size": {
+      "description": "Maximum width or height of images to brickify",
+      "type": "number",
+      "default": 512
+    },
+    "max-filesize": {
+      "description": "Maximum downloadable file size (bytes)",
+      "type": "number",
+      "default": 5000000
+    }
+  },
+  "commands": [
+    {
+      "name": "!img",
+      "description": "Convert an image to bricks and place them under your player",
+      "example": "!img https://imgur.com/image.png",
+      "args": [{
+        "name": "url",
+        "description": "Url of image to download and convert",
+        "required": true
+      }]
+    },
+    {
+      "name": "!img:tile",
+      "description": "Same as !img but renders saves as tiled bricks",
+      "example": "!img:tile https://imgur.com/image.png",
+      "args": [{
+        "name": "url",
+        "description": "Url of image to download and convert",
+        "required": true
+      }]
+    }
+  ]
+}

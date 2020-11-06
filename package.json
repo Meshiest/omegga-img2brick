@@ -1,0 +1,15 @@
+{
+  "name": "omegga-img2brick",
+  "version": "0.0.1",
+  "description": "omegga plugin for converting images to bricks",
+  "main": "omegga.plugin.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Meshiest",
+  "license": "ISC",
+  "dependencies": {
+    "pngjs": "^6.0.0",
+    "request": "^2.88.2"
+  }
+}
