@@ -5,7 +5,7 @@ An image-to-brick converter for [omegga](https://github.com/brickadia-community/
 ## Install
 
 * `git clone https://github.com/meshiest/omegga-img2brick img2brick` in `plugins` directory
-* `npm i` in `textgen` directory
+* `npm i` in `img2brick` directory
 
 ## Screenshot
 
