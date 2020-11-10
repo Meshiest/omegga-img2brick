@@ -27,6 +27,16 @@
       "description": "Maximum downloadable file size (bytes)",
       "type": "number",
       "default": 5000000
+    },
+    "quilt-mode": {
+      "description": "A mode where every image uploaded is on a quilt-size grid",
+      "type": "boolean",
+      "default": false
+    },
+    "quilt-size": {
+      "description": "Size of the quilt grid, images must have dimensions a multiple of this. Min: 8",
+      "type": "number",
+      "default": 16
     }
   },
   "commands": [
@@ -48,6 +58,46 @@
         "name": "url",
         "description": "Url of image to download and convert",
         "required": true
+      }]
+    },
+    {
+      "name": "!img:quilt-reset",
+      "description": "Clear the stored quilt in memory (host/authorized only)",
+      "example": "!img:quilt-reset",
+      "args": []
+    },
+    {
+      "name": "!img:quilt-fix",
+      "description": "Remove the section of the quilt the player is over (host/authorized only)",
+      "example": "!img:quilt-fix all",
+      "args": [{
+        "name": "all",
+        "description": "When provided, removes all sections by this owner",
+        "required": false
+      }]
+    },
+    {
+      "name": "!img:quilt-info",
+      "description": "See how many contributions you have made to the quilt",
+      "example": "!img:quilt-info all",
+      "args": [{
+        "name": "all",
+        "description": "See complete quilt information when provided (host only)",
+        "required": false
+      }]
+    },
+    {
+      "name": "!img:quilt-preview",
+      "description": "Preview the bricks in the image below the player (host only)",
+      "example": "!img:quilt-preview [all, broken]",
+      "args": [{
+        "name": "all",
+        "description": "See preview for every brick owned by this player",
+        "required": false
+      }, {
+        "name": "broken",
+        "description": "See preview for every broken cell",
+        "required": false
       }]
     }
   ]
