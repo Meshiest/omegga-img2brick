@@ -225,7 +225,7 @@ module.exports = class Img2Brick {
       return [{
         offX: x - width * (micro ? 1 : 5),
         offY: y - height * (micro ? 1 : 5),
-        offZ: z - 26,
+        offZ: Math.max(z - 26, 0),
       }, {}];
     }
 
