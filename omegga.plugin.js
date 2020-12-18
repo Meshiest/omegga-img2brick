@@ -390,7 +390,7 @@ module.exports = class Img2Brick {
       await this.runHeightmap(filepath, destpath, {tile, micro, name, id: player.id});
 
       // load the bricks
-      this.omegga.loadBricks(`"${savename}"`, savePos);
+      this.omegga.loadBricks(`${savename}`, savePos);
 
       // if quilt mode is enabled, update the quilt
       if (this.config['quilt-mode'])
