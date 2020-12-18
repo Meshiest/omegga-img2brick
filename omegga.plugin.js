@@ -415,7 +415,7 @@ module.exports = class Img2Brick {
 
         const maxFileSize = this.config['max-filesize'];
         // check file size
-        if (!(Number(res.headers['content-length']) < maxFileSize))
+        if (res.headers['content-length'] && !(Number(res.headers['content-length']) < maxFileSize))
           return reject(`image file too large (${res.headers['content-length']}B > ${maxFileSize}B)`);
 
         let size = 0;
@@ -457,12 +457,16 @@ module.exports = class Img2Brick {
         ` -o "${destpath}" --cull --owner_id "${id}" --owner "${name}" --img "${filename}"${
           tile?' --tile':micro?' --micro':''
         }`;
-      console.info(command);
+      if (Omegga.verbose)
+        console.info(command);
       const { stdout } = await exec(command, {});
-      console.log(stdout);
+      if (Omegga.verbose)
+        console.log(stdout);
+
       const result = stdout.match(/Reduced (\d+) to (\d+) /);
       if (!stdout.match(/Done!/) || !result)
         throw 'could not finish conversion';
+
 
       // potentially check reduction size
       //const original = Number(result[1]);
