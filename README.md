@@ -17,5 +17,6 @@ Convert images to text under your player with the following commands:
 
 Currently only supports PNGs and depends on experimental omegga
 
- * `!img url` - generate "message" beneath your player
- * `!img:tile url` - generate "message" centered beneath your player
+ * `!img url` - download an image and load it under your player
+ * `!img:tile url` - the same as `!img` but with tiles instead of studs
+ * `!img:micro url` - the same as `!img` but with microbricks instead of studs

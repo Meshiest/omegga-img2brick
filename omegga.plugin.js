@@ -390,7 +390,7 @@ module.exports = class Img2Brick {
       await this.runHeightmap(filepath, destpath, {tile, micro, name, id: player.id});
 
       // load the bricks
-      this.omegga.loadBricks(`${savename}`, savePos);
+      this.omegga.loadBricks(`${savename}`, {...savePos, quiet: true});
 
       // if quilt mode is enabled, update the quilt
       if (this.config['quilt-mode'])
@@ -469,8 +469,9 @@ module.exports = class Img2Brick {
 
 
       // potentially check reduction size
-      //const original = Number(result[1]);
-      //const reduced = Number(result[2]);
+      const original = Number(result[1]);
+      const reduced = Number(result[2]);
+      console.log('Reduced', original, 'to', reduced);
 
       return true;
     } catch ({ cmd, stderr }) {
