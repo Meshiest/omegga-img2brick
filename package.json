@@ -1,6 +1,6 @@
 {
   "name": "omegga-img2brick",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "omegga plugin for converting images to bricks",
   "main": "omegga.plugin.js",
   "scripts": {

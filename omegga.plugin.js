@@ -75,7 +75,8 @@ module.exports = class Img2Brick {
 
   // check if a name is authorized
   isAuthorized(name) {
-    return Omegga.getPlayer(name).isHost() || this.config['authorized'].split(',').includes(name);
+    const player = Omegga.getPlayer(name);
+    return player.isHost() || this.config['authorized-users'].some(p => player.id === p.id);
   }
 
   // get quilt info for the below image
@@ -349,7 +350,7 @@ module.exports = class Img2Brick {
 
     // authorization check
     const isAuthorized = this.isAuthorized(name);
-    if (this.config['host-only'] && !isAuthorized) return;
+    if (this.config['only-authorized'] && !isAuthorized) return;
 
     // check if player exists
     const player = this.omegga.getPlayer(name);

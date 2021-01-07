@@ -3,15 +3,15 @@
   "description": "Render images in game",
   "author": "cake",
   "config": {
-    "host-only": {
-      "description": "Whether img2brick is host only",
+    "only-authorized": {
+      "description": "Whether only authorized players can use img2brick commands",
       "type": "boolean",
       "default": true
     },
-    "authorized": {
-      "description": "Comma separated list of authorized usernames",
-      "type": "string",
-      "default": ""
+    "authorized-users": {
+      "description": "List of players who can always img2brick commands",
+      "type": "players",
+      "default": []
     },
     "cooldown": {
       "description": "Cooldown for time between loads (seconds)",
