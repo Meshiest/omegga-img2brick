@@ -4,6 +4,10 @@ An image-to-brick converter for [omegga](https://github.com/brickadia-community/
 
 ## Install
 
+Easy: `omegga install gh:Meshiest/img2brick`
+
+Manual:
+
 * `git clone https://github.com/meshiest/omegga-img2brick img2brick` in `plugins` directory
 * `npm i` in `img2brick` directory
 
