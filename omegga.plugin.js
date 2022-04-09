@@ -1,9 +1,11 @@
 const fs = require('fs');
-const request = require('request');
+const fetch = require('node-fetch');
 const path = require('path');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
-const {time: {debounce}} = global.OMEGGA_UTIL;
+const {
+  time: { debounce },
+} = global.OMEGGA_UTIL;
 
 const { PNG } = require('pngjs');
 
@@ -31,21 +33,23 @@ module.exports = class Img2Brick {
       })
       .on('chatcmd:img:tile', (name, ...args) => {
         const url = args.join(' ');
-        this.convert(name, url, {tile: true});
+        this.convert(name, url, { tile: true });
       })
       .on('chatcmd:img:micro', (name, ...args) => {
         // micro mode not enabled when quilt mode is enabled
         if (this.config['quilt-mode']) return;
 
         const url = args.join(' ');
-        this.convert(name, url, {micro: true});
+        this.convert(name, url, { micro: true });
       })
       .on('chatcmd:img:quilt-reset', async name => {
         if (!this.isAuthorized(name)) return;
         try {
           await this.store.set('quilt', {});
           this.quilt = {};
-          this.omegga.broadcast('"reset quilt - make sure all bricks are cleared"');
+          this.omegga.broadcast(
+            '"reset quilt - make sure all bricks are cleared"'
+          );
         } catch (e) {
           this.omegga.broadcast('"error resetting quilt"');
         }
@@ -62,7 +66,7 @@ module.exports = class Img2Brick {
       })
       .on('chatcmd:img:quilt-info', this.cmdQuiltInfo.bind(this))
       .on('chatcmd:img:quilt-preview', this.cmdQuiltPreview.bind(this));
-    this.quilt = await this.store.get('quilt') || {};
+    this.quilt = (await this.store.get('quilt')) || {};
   }
 
   async stop() {
@@ -76,31 +80,40 @@ module.exports = class Img2Brick {
   // check if a name is authorized
   isAuthorized(name) {
     const player = Omegga.getPlayer(name);
-    return player.isHost() || this.config['authorized-users'].some(p => player.id === p.id);
+    return (
+      player.isHost() ||
+      this.config['authorized-users'].some(p => player.id === p.id)
+    );
   }
 
   // get quilt info for the below image
   cmdQuiltInfo(name, all) {
     if (!this.quilt.init || !this.config['quilt-mode']) return;
-    const isAll = all==='all' && this.isAuthorized(name);
+    const isAll = all === 'all' && this.isAuthorized(name);
     const percent = n => yellow(Math.round(n * 100) + '%');
 
     if (isAll) {
       for (const owner of this.quilt.owners) {
-        this.omegga.broadcast(`"<color=\\"ccccff\\">${owner.name}</>: ${yellow(owner.images)} images (${
-          percent(owner.images/this.quilt.images.length)
-        }), ${yellow(owner.tiles)} tiles (${
-          percent(owner.tiles/Object.keys(this.quilt.grid).length)
-        })"`);
+        this.omegga.broadcast(
+          `"<color=\\"ccccff\\">${owner.name}</>: ${yellow(
+            owner.images
+          )} images (${percent(
+            owner.images / this.quilt.images.length
+          )}), ${yellow(owner.tiles)} tiles (${percent(
+            owner.tiles / Object.keys(this.quilt.grid).length
+          )})"`
+        );
       }
     } else {
       const owner = this.quilt.owners.find(o => o.name === name);
       if (!owner) return;
-      this.omegga.broadcast(`"You've contributed ${yellow(owner.images)} images (${
-        percent(owner.images/this.quilt.images.length)
-      }), ${yellow(owner.tiles)} tiles (${
-        percent(owner.tiles/Object.keys(this.quilt.grid).length)
-      })"`);
+      this.omegga.broadcast(
+        `"You've contributed ${yellow(owner.images)} images (${percent(
+          owner.images / this.quilt.images.length
+        )}), ${yellow(owner.tiles)} tiles (${percent(
+          owner.tiles / Object.keys(this.quilt.grid).length
+        )})"`
+      );
     }
   }
 
@@ -130,23 +143,25 @@ module.exports = class Img2Brick {
               (y * 2 + 1) * quiltSize * 5,
               200,
             ],
-          }))
+          })),
         });
       };
 
       let [x, y] = await this.omegga.getPlayer(name).getPosition();
 
-      x = Math.floor(x/quiltSize/10);
-      y = Math.floor(y/quiltSize/10);
+      x = Math.floor(x / quiltSize / 10);
+      y = Math.floor(y / quiltSize / 10);
       const imageIndex = this.quilt.grid[[x, y]];
 
       if (typeof imageIndex === 'undefined')
         return say('not over an existing image');
 
       if (isBroken) {
-        load(Object.keys(this.quilt.grid)
-          .filter(i => this.quilt.grid[i] === -1)
-          .map(i => i.split(',').map(Number)));
+        load(
+          Object.keys(this.quilt.grid)
+            .filter(i => this.quilt.grid[i] === -1)
+            .map(i => i.split(',').map(Number))
+        );
         return say('loading all single cells');
       }
 
@@ -158,9 +173,11 @@ module.exports = class Img2Brick {
 
       const owner = this.quilt.owners.find(o => o.index === image.owner);
       if (isAll) {
-        console.log(this.quilt.images
-          .filter(i => i.owner === owner.index)
-          .flatMap(i => i.area));
+        console.log(
+          this.quilt.images
+            .filter(i => i.owner === owner.index)
+            .flatMap(i => i.area)
+        );
         load(
           this.quilt.images
             .filter(i => i.owner === owner.index)
@@ -171,7 +188,6 @@ module.exports = class Img2Brick {
         load(image.area, owner);
         return say('tile ' + imageIndex);
       }
-
     } catch (e) {
       console.error(e);
     }
@@ -208,10 +224,10 @@ module.exports = class Img2Brick {
     for (let i = 0; i < w; i++) {
       for (let j = 0; j < h; j++) {
         // add the cell to the area array
-        area.push([(x + i), (y + j)]);
+        area.push([x + i, y + j]);
 
         // check if there's an owner in this grid section
-        if (typeof this.quilt.grid[[(x + i), (y + j)]] !== 'undefined')
+        if (typeof this.quilt.grid[[x + i, y + j]] !== 'undefined')
           throw 'image overlaps with another section of quilt';
       }
     }
@@ -220,46 +236,57 @@ module.exports = class Img2Brick {
 
   // get an image's position adjusted for quilt size
   // error if there is quilt overlap
-  async getSaveOffset([x, y, z], [width, height], player, {micro=false}={}) {
+  async getSaveOffset(
+    [x, y, z],
+    [width, height],
+    player,
+    { micro = false } = {}
+  ) {
     // if it's not quilt mode - use default behavior
     if (!this.config['quilt-mode']) {
-      return [{
-        offX: x - width * (micro ? 1 : 5),
-        offY: y - height * (micro ? 1 : 5),
-        offZ: Math.max(z - 26, 0),
-      }, {}];
+      return [
+        {
+          offX: x - width * (micro ? 1 : 5),
+          offY: y - height * (micro ? 1 : 5),
+          offZ: Math.max(z - 26, 0),
+        },
+        {},
+      ];
     }
 
     // align to quilt grid
     const quiltSize = this.quilt.size;
 
-    x = Math.floor(x/quiltSize/10);
-    y = Math.floor(y/quiltSize/10);
+    x = Math.floor(x / quiltSize / 10);
+    y = Math.floor(y / quiltSize / 10);
 
     // check image dimensions
     if (width % quiltSize !== 0 || height % quiltSize !== 0)
       throw `image does not fit ${quiltSize}x quilt grid (${width}x${height})`;
 
     // get width/height in quilt units
-    width = Math.floor(width/quiltSize);
-    height = Math.floor(height/quiltSize);
+    width = Math.floor(width / quiltSize);
+    height = Math.floor(height / quiltSize);
 
     // check for overlap, initialize quilt
     const area = this.checkQuilt(x, y, width, height);
 
     // return position snapped to grid
-    return [{
-      offX: x * quiltSize * 10,
-      offY: y * quiltSize * 10,
-      offZ: 0,
-    }, {
-      owner: player,
-      area,
-    }];
+    return [
+      {
+        offX: x * quiltSize * 10,
+        offY: y * quiltSize * 10,
+        offZ: 0,
+      },
+      {
+        owner: player,
+        area,
+      },
+    ];
   }
 
   // update the quilt
-  updateQuilt({owner, area}) {
+  updateQuilt({ owner, area }) {
     // find the quilt owner
     let quiltOwner = this.quilt.owners.find(o => o.id === owner.id);
 
@@ -267,7 +294,7 @@ module.exports = class Img2Brick {
     if (!quiltOwner) {
       quiltOwner = {
         ...owner,
-        index: this.quilt.owner_count ++,
+        index: this.quilt.owner_count++,
         tiles: 0,
         images: 0,
       };
@@ -276,7 +303,7 @@ module.exports = class Img2Brick {
 
     // update owner stats
     quiltOwner.tiles += area.length;
-    quiltOwner.images ++;
+    quiltOwner.images++;
 
     const ownerIndex = quiltOwner.index;
     const imageIndex = this.quilt.image_count++;
@@ -303,8 +330,8 @@ module.exports = class Img2Brick {
 
     // align to quilt grid
     const quiltSize = this.quilt.size;
-    x = Math.floor(x/quiltSize/10);
-    y = Math.floor(y/quiltSize/10);
+    x = Math.floor(x / quiltSize / 10);
+    y = Math.floor(y / quiltSize / 10);
 
     const imageIndex = this.quilt.grid[[x, y]];
     if (typeof imageIndex === 'undefined') return 'not over an existing image';
@@ -313,24 +340,24 @@ module.exports = class Img2Brick {
       delete this.quilt.grid[[x, y]];
       return 'cleared single tile';
     }
-    const {owner: ownerIndex, area} = image;
+    const { owner: ownerIndex, area } = image;
     const owner = this.quilt.owners.find(o => o.index === ownerIndex);
 
     // remove every cell and image owned by this owner
     if (all) {
       for (const cell in this.quilt.grid) {
-        if (this.quilt.grid[cell] === ownerIndex)
-          delete this.quilt.grid[cell];
+        if (this.quilt.grid[cell] === ownerIndex) delete this.quilt.grid[cell];
       }
 
       // remove all images from this quilt
       this.quilt.images = this.quilt.images.filter(i => i.owner !== ownerIndex);
-      return `Removed ${yellow(owner.tiles)} tiles, ${yellow(owner.images)} images by ${owner.name}`;
+      return `Removed ${yellow(owner.tiles)} tiles, ${yellow(
+        owner.images
+      )} images by ${owner.name}`;
     } else {
       // remove just the cells in the image area
       for (const cell of area) {
-        if (this.quilt.grid[cell])
-          delete this.quilt.grid[cell];
+        if (this.quilt.grid[cell]) delete this.quilt.grid[cell];
       }
 
       // remove the image from the images list
@@ -338,14 +365,14 @@ module.exports = class Img2Brick {
 
       // remove the metrics from the owner
       owner.tiles -= area.length;
-      owner.images --;
+      owner.images--;
 
       return `Removed ${yellow(area.length)} tiles by ${owner.name}`;
     }
   }
 
   // convert an image url into an in-game save at the player with a specified name's position
-  async convert(name, url, {tile=false, micro=false}={}) {
+  async convert(name, url, { tile = false, micro = false } = {}) {
     if (url.length < 3) return;
 
     // authorization check
@@ -359,7 +386,11 @@ module.exports = class Img2Brick {
     // cooldown check for unauthorized players
     if (!isAuthorized) {
       const now = Date.now();
-      if ((await this.store.get('cooldown_' + player.id) || 0) + Math.max(this.config['cooldown'], 0) * 1000 > now) {
+      if (
+        ((await this.store.get('cooldown_' + player.id)) || 0) +
+          Math.max(this.config['cooldown'], 0) * 1000 >
+        now
+      ) {
         return;
       }
       await this.store.set('cooldown_' + player.id, now);
@@ -385,17 +416,26 @@ module.exports = class Img2Brick {
       console.info(name, 'OK =>', filename, `(${width} x ${height})`);
 
       // get the image's position (or quilt position)
-      const [savePos, quiltInsert] = await this.getSaveOffset(pos, [width, height], player, {micro});
+      const [savePos, quiltInsert] = await this.getSaveOffset(
+        pos,
+        [width, height],
+        player,
+        { micro }
+      );
 
       // convert the heightmap
-      await this.runHeightmap(filepath, destpath, {tile, micro, name, id: player.id});
+      await this.runHeightmap(filepath, destpath, {
+        tile,
+        micro,
+        name,
+        id: player.id,
+      });
 
       // load the bricks
-      this.omegga.loadBricks(`${savename}`, {...savePos, quiet: true});
+      this.omegga.loadBricks(`${savename}`, { ...savePos, quiet: true });
 
       // if quilt mode is enabled, update the quilt
-      if (this.config['quilt-mode'])
-        this.updateQuilt(quiltInsert);
+      if (this.config['quilt-mode']) this.updateQuilt(quiltInsert);
     } catch (e) {
       this.omegga.broadcast(`"error: ${e}"`);
       console.error(e);
@@ -403,41 +443,37 @@ module.exports = class Img2Brick {
   }
 
   // download a png at a url to a file
-  downloadFile(uri, filename) {
-    return new Promise((resolve, reject) => {
-      request.head(uri, (err, res) => {
-        if (err) {
-          return reject('could not make request');
-        }
+  async downloadFile(uri, filename) {
+    const headRes = await fetch(uri, { method: 'HEAD' });
+    if (headRes.headers.get('content-type') !== 'image/png')
+      throw 'wrong response format (expected image/png)';
 
-        // check content type
-        if (res.headers['content-type'] !== 'image/png')
-          return reject('wrong response format (expected image/png)');
+    const maxFileSize = this.config['max-filesize'];
 
-        const maxFileSize = this.config['max-filesize'];
-        // check file size
-        if (res.headers['content-length'] && !(Number(res.headers['content-length']) < maxFileSize))
-          return reject(`image file too large (${res.headers['content-length']}B > ${maxFileSize}B)`);
+    // check file size
+    if (
+      headRes.headers.has('content-length') &&
+      !(Number(headRes.headers.get('content-length')) < maxFileSize)
+    )
+      throw `image file too large (${headRes.headers.get(
+        'content-length'
+      )}B > ${maxFileSize}B)`;
 
-        let size = 0;
-        // go ahead and download the image.. we're really hoping they didn't lie in the content-type
-        const req = request(uri);
-        req
-          .on('data', data => {
-            size += data.length;
-            if (size > maxFileSize) {
-              req.abort();
-              return reject(`image file too large (> ${maxFileSize}B)`);
-            }
-          })
-          .pipe(fs.createWriteStream(filename))
-          .on('close', resolve);
-      });
+    // go ahead and download the image.. we're really hoping they didn't lie in the content-type
+    const req = await fetch(uri, { size: maxFileSize });
+    const dest = fs.createWriteStream(filename);
+
+    const promise = new Promise((resolve, reject) => {
+      dest.on('close', resolve);
+      dest.on('error', () => reject('error writing file'));
     });
+    req.body.pipe(dest);
+
+    await promise;
   }
 
   // check if a png file has a valid size
-  checkPNG(filename, ignore=false) {
+  checkPNG(filename, ignore = false) {
     const maxSize = this.config['max-size'];
     return new Promise((resolve, reject) => {
       fs.createReadStream(filename)
@@ -445,29 +481,36 @@ module.exports = class Img2Brick {
         .on('error', () => reject('error parsing png'))
         .on('parsed', function () {
           if (!ignore && (this.width > maxSize || this.height > maxSize))
-            return reject(`image dimensions too large (${Math.max(this.height, this.width)}px > ${maxSize}px)`);
+            return reject(
+              `image dimensions too large (${Math.max(
+                this.height,
+                this.width
+              )}px > ${maxSize}px)`
+            );
           return resolve([this.width, this.height]);
         });
     });
   }
 
   // run the heightmap binary given an input file
-  async runHeightmap(filename, destpath, {tile=false,micro=false,id,name}={}) {
+  async runHeightmap(
+    filename,
+    destpath,
+    { tile = false, micro = false, id, name } = {}
+  ) {
     try {
-      const command = HEIGHTMAP_BIN +
+      const command =
+        HEIGHTMAP_BIN +
         ` -o "${destpath}" --cull --owner_id "${id}" --owner "${name}" --img "${filename}"${
-          tile?' --tile':micro?' --micro':''
+          tile ? ' --tile' : micro ? ' --micro' : ''
         }`;
-      if (Omegga.verbose)
-        console.info(command);
+      if (Omegga.verbose) console.info(command);
       const { stdout } = await exec(command, {});
-      if (Omegga.verbose)
-        console.log(stdout);
+      if (Omegga.verbose) console.log(stdout);
 
       const result = stdout.match(/Reduced (\d+) to (\d+) /);
       if (!stdout.match(/Done!/) || !result)
         throw 'could not finish conversion';
-
 
       // potentially check reduction size
       const original = Number(result[1]);
@@ -481,5 +524,4 @@ module.exports = class Img2Brick {
       throw 'conversion software failed';
     }
   }
-
 };
