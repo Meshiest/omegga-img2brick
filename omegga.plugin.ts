@@ -1,13 +1,15 @@
-const fs = require('fs');
-const fetch = require('node-fetch');
-const path = require('path');
-const util = require('util');
+import OmeggaPlugin, { OL, PC, PS } from 'omegga';
+
+import fs from 'fs';
+import fetch from 'node-fetch';
+import path from 'path';
+import util from 'util';
 const exec = util.promisify(require('child_process').exec);
 const {
   time: { debounce },
 } = global.OMEGGA_UTIL;
 
-const { PNG } = require('pngjs');
+import { PNG } from 'pngjs';
 
 // path in which images are downloaded
 const DOWNLOAD_FOLDER = path.join(__dirname, 'downloads');
@@ -17,13 +19,55 @@ const HEIGHTMAP_BIN = path.join(__dirname, 'lib/heightmap');
 
 const yellow = str => `<color=\\"ffff00\\">${str}</>`;
 
-module.exports = class Img2Brick {
-  constructor(omegga, config, store) {
+type Config = {
+  'only-authorized': boolean;
+  'authorized-users': { id: string; name: string }[];
+  cooldown: number;
+  'max-size': number;
+  'max-filesize': number;
+  'quilt-mode': boolean;
+  'quilt-size': number;
+};
+type Quilt =
+  | {
+      version: 1;
+      init: boolean;
+      size: number;
+      owners: {
+        images: number;
+        name: string;
+        id: string;
+        tiles: number;
+        index: number;
+      }[];
+      images: {
+        owner: number;
+        index: number;
+        area: [number, number][];
+      }[];
+      image_count: number;
+      owner_count: number;
+      grid: Record<string, number>;
+    }
+  | Record<string, never>;
+
+type Storage = {
+  quilt: Quilt;
+  [key: string]: any;
+};
+
+export default class Img2Brick implements OmeggaPlugin<Config, Storage> {
+  omegga: OL;
+  config: PC<Config>;
+  store: PS<Storage>;
+
+  constructor(omegga: OL, config: PC<Config>, store: PS<Storage>) {
     this.omegga = omegga;
     this.config = config;
     this.store = store;
-    this.saveQuilt = debounce(this.saveQuilt.bind(this), 60000);
   }
+
+  quilt: Quilt;
 
   async init() {
     this.omegga
@@ -46,7 +90,7 @@ module.exports = class Img2Brick {
         if (!this.isAuthorized(name)) return;
         try {
           await this.store.set('quilt', {});
-          this.quilt = {};
+          this.quilt = {} as any;
           this.omegga.broadcast(
             '"reset quilt - make sure all bricks are cleared"'
           );
@@ -58,7 +102,9 @@ module.exports = class Img2Brick {
         if (!this.isAuthorized(name)) return;
         try {
           const pos = await this.omegga.getPlayer(name).getPosition();
-          this.omegga.broadcast(`"${this.fixQuilt(pos, all === 'all')}"`);
+          this.omegga.broadcast(
+            `"${this.fixQuilt([pos[0], pos[1]], all === 'all')}"`
+          );
         } catch (e) {
           console.log('err', e);
           // player probably doesn't exist
@@ -79,7 +125,7 @@ module.exports = class Img2Brick {
 
   // check if a name is authorized
   isAuthorized(name) {
-    const player = Omegga.getPlayer(name);
+    const player = this.omegga.getPlayer(name);
     return (
       player.isHost() ||
       this.config['authorized-users'].some(p => player.id === p.id)
@@ -130,7 +176,7 @@ module.exports = class Img2Brick {
       // align to quilt grid
       const quiltSize = this.quilt.size;
 
-      const load = (positions, owner) => {
+      const load = (positions, owner?) => {
         owner = owner || this.omegga.getPlayer(name);
         this.omegga.loadSaveData({
           brick_owners: [owner],
@@ -151,7 +197,7 @@ module.exports = class Img2Brick {
 
       x = Math.floor(x / quiltSize / 10);
       y = Math.floor(y / quiltSize / 10);
-      const imageIndex = this.quilt.grid[[x, y]];
+      const imageIndex = this.quilt.grid[[x, y].join(',')];
 
       if (typeof imageIndex === 'undefined')
         return say('not over an existing image');
@@ -227,7 +273,7 @@ module.exports = class Img2Brick {
         area.push([x + i, y + j]);
 
         // check if there's an owner in this grid section
-        if (typeof this.quilt.grid[[x + i, y + j]] !== 'undefined')
+        if (typeof this.quilt.grid[[x + i, y + j].join(',')] !== 'undefined')
           throw 'image overlaps with another section of quilt';
       }
     }
@@ -282,6 +328,9 @@ module.exports = class Img2Brick {
         owner: player,
         area,
       },
+    ] as [
+      { offX: number; offY: number; offZ: number },
+      { owner: any; area: any }
     ];
   }
 
@@ -333,11 +382,11 @@ module.exports = class Img2Brick {
     x = Math.floor(x / quiltSize / 10);
     y = Math.floor(y / quiltSize / 10);
 
-    const imageIndex = this.quilt.grid[[x, y]];
+    const imageIndex = this.quilt.grid[[x, y].join(',')];
     if (typeof imageIndex === 'undefined') return 'not over an existing image';
     const image = this.quilt.images.find(i => i.index === imageIndex);
     if (imageIndex === -1 || !image) {
-      delete this.quilt.grid[[x, y]];
+      delete this.quilt.grid[[x, y].join(',')];
       return 'cleared single tile';
     }
     const { owner: ownerIndex, area } = image;
@@ -357,7 +406,8 @@ module.exports = class Img2Brick {
     } else {
       // remove just the cells in the image area
       for (const cell of area) {
-        if (this.quilt.grid[cell]) delete this.quilt.grid[cell];
+        if (this.quilt.grid[cell.join(',')])
+          delete this.quilt.grid[cell.join(',')];
       }
 
       // remove the image from the images list
@@ -432,10 +482,10 @@ module.exports = class Img2Brick {
       });
 
       // load the bricks
-      this.omegga.loadBricks(`${savename}`, { ...savePos, quiet: true });
+      this.omegga.loadBricksOnPlayer(savename, player);
 
       // if quilt mode is enabled, update the quilt
-      if (this.config['quilt-mode']) this.updateQuilt(quiltInsert);
+      if (this.config['quilt-mode']) this.updateQuilt(quiltInsert as any);
     } catch (e) {
       this.omegga.broadcast(`"error: ${e}"`);
       console.error(e);
@@ -465,7 +515,10 @@ module.exports = class Img2Brick {
 
     const promise = new Promise((resolve, reject) => {
       dest.on('close', resolve);
-      dest.on('error', () => reject('error writing file'));
+      dest.on('error', err => {
+        console.error(err);
+        reject('error writing file');
+      });
     });
     req.body.pipe(dest);
 
@@ -475,7 +528,7 @@ module.exports = class Img2Brick {
   // check if a png file has a valid size
   checkPNG(filename, ignore = false) {
     const maxSize = this.config['max-size'];
-    return new Promise((resolve, reject) => {
+    return new Promise<[number, number]>((resolve, reject) => {
       fs.createReadStream(filename)
         .pipe(new PNG())
         .on('error', () => reject('error parsing png'))
@@ -494,9 +547,14 @@ module.exports = class Img2Brick {
 
   // run the heightmap binary given an input file
   async runHeightmap(
-    filename,
-    destpath,
-    { tile = false, micro = false, id, name } = {}
+    filename: string,
+    destpath: string,
+    {
+      tile = false,
+      micro = false,
+      id,
+      name,
+    }: { tile?: boolean; micro?: boolean; id: string; name: string }
   ) {
     try {
       const command =
@@ -504,9 +562,9 @@ module.exports = class Img2Brick {
         ` -o "${destpath}" --cull --owner_id "${id}" --owner "${name}" --img "${filename}"${
           tile ? ' --tile' : micro ? ' --micro' : ''
         }`;
-      if (Omegga.verbose) console.info(command);
+      if (this.omegga.verbose) console.info(command);
       const { stdout } = await exec(command, {});
-      if (Omegga.verbose) console.log(stdout);
+      if (this.omegga.verbose) console.log(stdout);
 
       const result = stdout.match(/Reduced (\d+) to (\d+) /);
       if (!stdout.match(/Done!/) || !result)
@@ -518,10 +576,11 @@ module.exports = class Img2Brick {
       console.log('Reduced', original, 'to', reduced);
 
       return true;
-    } catch ({ cmd, stderr }) {
+    } catch (err) {
+      const { cmd, stderr } = err;
       console.error('command: ' + cmd);
       console.error(stderr);
       throw 'conversion software failed';
     }
   }
-};
+}
