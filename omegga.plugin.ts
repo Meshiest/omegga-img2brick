@@ -5,9 +5,6 @@ import fetch from 'node-fetch';
 import path from 'path';
 import util from 'util';
 const exec = util.promisify(require('child_process').exec);
-const {
-  time: { debounce },
-} = global.OMEGGA_UTIL;
 
 import { PNG } from 'pngjs';
 
