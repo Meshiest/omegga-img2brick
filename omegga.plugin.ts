@@ -9,10 +9,10 @@ const exec = util.promisify(require('child_process').exec);
 import { PNG } from 'pngjs';
 
 // path in which images are downloaded
-const DOWNLOAD_FOLDER = path.join(__dirname, 'downloads');
+const DOWNLOAD_FOLDER = path.join(__dirname, '../downloads');
 
 // path to the heightmap binary
-const HEIGHTMAP_BIN = path.join(__dirname, 'lib/heightmap');
+const HEIGHTMAP_BIN = path.join(__dirname, '../lib/heightmap');
 
 const yellow = str => `<color=\\"ffff00\\">${str}</>`;
 
